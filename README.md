@@ -29,6 +29,7 @@ Cashier provider registry.
 - `sdk/payments/include/PaymentInterface.h`
 - `sdk/payments/include/PaymentServerInterface.h`
 - `sdk/payments/include/model/PaymentStructures.hpp`
+- `sdk/payments/examples/praxis_cashier_payment.cpp`
 
 ## Provider Responsibilities
 
@@ -39,3 +40,46 @@ Cashier provider registry.
 - optionally cancel/refund provider payments.
 
 Provider modules must not call trading balance operations directly.
+
+## Praxis-Style Example
+
+`examples/praxis_cashier_payment.cpp` is a realistic hosted cashier provider
+sample. It uses a Praxis-like redirect flow:
+
+1. Cashier resolves the active provider config for `provider`, `brand`,
+   `method`, `currency`, and `country`.
+2. Cashier passes credentials and settings to the payment module through
+   `PaymentCreateRequestRecord::config`.
+3. The provider builds a hosted cashier payload and returns:
+   - `provider_payment_id`;
+   - `redirect_url`;
+   - `instructions_json`;
+   - `raw_response_json`;
+   - normalized `PAYMENT_STATUS_PENDING`.
+
+Example provider config:
+
+```json
+{
+  "provider": "praxis",
+  "brand": "ion4",
+  "method": "card",
+  "country": "",
+  "currency": "USD",
+  "merchant_id": "merchant-id",
+  "public_key": "application-key",
+  "secret_key": "merchant-secret",
+  "webhook_secret": "webhook-secret",
+  "settings_json": "{\"api_base_url\":\"https://api.praxis.example\",\"cashier_base_url\":\"https://cashier.praxis.example\",\"api_version\":\"1.3\",\"locale\":\"en\"}",
+  "sandbox": 0,
+  "enabled": 1
+}
+```
+
+The sample intentionally does not perform an HTTP request. A production
+provider should POST the prepared payload to the provider API, validate the
+provider response, and return the real hosted cashier URL.
+
+Webhook normalization is also shown in the example. A production Praxis module
+must validate the webhook signature with `webhook_secret` before returning
+`PAYMENT_SIGNATURE_VALID`.
