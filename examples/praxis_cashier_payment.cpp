@@ -46,7 +46,29 @@ public:
     std::string provider_description() const override { return "Praxis-style hosted cashier redirect provider"; }
     std::string provider_payment_mode() const override { return "redirect"; }
 
+    int InitPayment(const PaymentProviderConfigRecord& config) override {
+        const std::string merchant_id = configString(config.config_json, "merchant_id");
+        const std::string application_key = configString(config.config_json, "application_key");
+        const std::string secret_key = configString(config.config_json, "secret_key");
+        if (merchant_id.empty() || application_key.empty() || secret_key.empty()) {
+            return RET_ERR_PARAMS;
+        }
+        config_ = config;
+        initialized_ = true;
+        return RET_OK;
+    }
+
+    int ShutdownPayment() override {
+        initialized_ = false;
+        return RET_OK;
+    }
+
     int CreateDeposit(const PaymentCreateRequestRecord& req, PaymentCreateResponseRecord& res) override {
+        if (!initialized_) {
+            res.status = PAYMENT_STATUS_FAILED;
+            res.failure_reason = "PRAXIS_NOT_INITIALIZED";
+            return RET_ERR_NOSERVICE;
+        }
         const std::string merchant_id = configString(req.config.config_json, "merchant_id");
         const std::string application_key = configString(req.config.config_json, "application_key");
         const std::string secret_key = configString(req.config.config_json, "secret_key");
@@ -153,6 +175,8 @@ public:
 
 private:
     PaymentServerInterface* server_;
+    PaymentProviderConfigRecord config_;
+    bool initialized_ = false;
 };
 
 extern "C" int GetPaymentApiVersion() {

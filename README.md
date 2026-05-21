@@ -19,10 +19,15 @@ extern "C" void DestroyPaymentProvider(PaymentInterface* provider);
 
 `GetPaymentApiVersion()` must return `PaymentServerInterface::GetApiVersion()`.
 
-At initialization the server calls `CreatePaymentProvider`, reads
-`provider_code`, `provider_name`, `provider_description`, and
-`provider_payment_mode`, then keeps the initialized instance in the
-Cashier provider registry.
+For each enabled Cashier provider config, the server copies the original
+provider `.so` to `var/sttrader/payments` under a unique runtime filename,
+calls `CreatePaymentProvider`, verifies that `provider_code()` matches the
+config `provider`, and then calls `InitPayment(config)`.
+
+One provider module may therefore be initialized more than once with different
+credentials or routing config. Each active provider config has its own module
+copy, handle, and provider instance. Before destroying an instance, the server
+calls `ShutdownPayment()`.
 
 ## Core Files
 
@@ -34,6 +39,8 @@ Cashier provider registry.
 ## Provider Responsibilities
 
 - create provider-side deposit payment;
+- validate and store config in `InitPayment`;
+- release provider resources in `ShutdownPayment`;
 - verify webhook signatures;
 - normalize provider statuses;
 - return redirect URLs or payment instructions;
