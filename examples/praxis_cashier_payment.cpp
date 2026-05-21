@@ -13,9 +13,9 @@ std::string jsonString(const rapidjson::Value& obj, const char* key, const std::
     return obj[key].GetString();
 }
 
-std::string settingsString(const std::string& settings_json, const char* key, const std::string& fallback = "") {
+std::string configString(const std::string& config_json, const char* key, const std::string& fallback = "") {
     rapidjson::Document doc;
-    if (settings_json.empty() || doc.Parse(settings_json.c_str()).HasParseError() || !doc.IsObject()) {
+    if (config_json.empty() || doc.Parse(config_json.c_str()).HasParseError() || !doc.IsObject()) {
         return fallback;
     }
     return jsonString(doc, key, fallback);
@@ -47,7 +47,10 @@ public:
     std::string provider_payment_mode() const override { return "redirect"; }
 
     int CreateDeposit(const PaymentCreateRequestRecord& req, PaymentCreateResponseRecord& res) override {
-        if (req.config.merchant_id.empty() || req.config.secret_key.empty()) {
+        const std::string merchant_id = configString(req.config.config_json, "merchant_id");
+        const std::string application_key = configString(req.config.config_json, "application_key");
+        const std::string secret_key = configString(req.config.config_json, "secret_key");
+        if (merchant_id.empty() || application_key.empty() || secret_key.empty()) {
             res.status = PAYMENT_STATUS_FAILED;
             res.failure_reason = "PRAXIS_CONFIG_MISSING";
             return RET_ERR_PARAMS;
@@ -58,18 +61,18 @@ public:
             return RET_ERR_PARAMS;
         }
 
-        const std::string api_base = settingsString(req.config.settings_json, "api_base_url", req.config.sandbox ? "https://sandbox.praxis.example" : "https://api.praxis.example");
-        const std::string cashier_base = settingsString(req.config.settings_json, "cashier_base_url", req.config.sandbox ? "https://cashier-sandbox.praxis.example" : "https://cashier.praxis.example");
-        const std::string locale = settingsString(req.config.settings_json, "locale", "en");
-        const std::string version = settingsString(req.config.settings_json, "api_version", "1.3");
+        const std::string api_base = configString(req.config.config_json, "api_base_url", req.config.sandbox ? "https://sandbox.praxis.example" : "https://api.praxis.example");
+        const std::string cashier_base = configString(req.config.config_json, "cashier_base_url", req.config.sandbox ? "https://cashier-sandbox.praxis.example" : "https://cashier.praxis.example");
+        const std::string locale = configString(req.config.config_json, "locale", "en");
+        const std::string version = configString(req.config.config_json, "api_version", "1.3");
 
         res.provider_payment_id = "px-" + std::to_string(req.transaction_id) + "-" + std::to_string(static_cast<long long>(std::time(nullptr)));
 
         rapidjson::Document payload;
         payload.SetObject();
         auto& alloc = payload.GetAllocator();
-        payload.AddMember("merchant_id", rapidjson::Value(req.config.merchant_id.c_str(), alloc), alloc);
-        payload.AddMember("application_key", rapidjson::Value(req.config.public_key.c_str(), alloc), alloc);
+        payload.AddMember("merchant_id", rapidjson::Value(merchant_id.c_str(), alloc), alloc);
+        payload.AddMember("application_key", rapidjson::Value(application_key.c_str(), alloc), alloc);
         payload.AddMember("intent", "deposit", alloc);
         payload.AddMember("version", rapidjson::Value(version.c_str(), alloc), alloc);
         payload.AddMember("trace_id", rapidjson::Value(res.provider_payment_id.c_str(), alloc), alloc);
@@ -123,7 +126,8 @@ public:
 
         // Praxis integrations normally validate headers/signature with webhook_secret.
         // This sample marks configured webhooks as valid and focuses on status mapping.
-        res.signature_status = req.config.webhook_secret.empty() ? PAYMENT_SIGNATURE_UNKNOWN : PAYMENT_SIGNATURE_VALID;
+        const std::string webhook_secret = configString(req.config.config_json, "webhook_secret");
+        res.signature_status = webhook_secret.empty() ? PAYMENT_SIGNATURE_UNKNOWN : PAYMENT_SIGNATURE_VALID;
         res.event_id = jsonString(payload, "event_id", jsonString(payload, "trace_id"));
         res.provider_payment_id = jsonString(payload, "transaction_id", jsonString(payload, "payment_id"));
         res.raw_status = jsonString(payload, "status");

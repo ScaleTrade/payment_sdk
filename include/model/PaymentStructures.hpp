@@ -27,11 +27,15 @@ enum PaymentSignatureStatus {
 struct PaymentProviderConfigRecord {
     std::string provider;
     std::string brand;
+    std::string method;
+    std::string currency;
+    std::string country;
     std::string merchant_id;
     std::string public_key;
     std::string secret_key;
     std::string webhook_secret;
     std::string settings_json;
+    std::string config_json;
     int sandbox = 0;
 };
 

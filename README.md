@@ -48,8 +48,8 @@ sample. It uses a Praxis-like redirect flow:
 
 1. Cashier resolves the active provider config for `provider`, `brand`,
    `method`, `currency`, and `country`.
-2. Cashier passes credentials and settings to the payment module through
-   `PaymentCreateRequestRecord::config`.
+2. Cashier passes routing fields and provider-specific `config_json` to the
+   payment module through `PaymentCreateRequestRecord::config`.
 3. The provider builds a hosted cashier payload and returns:
    - `provider_payment_id`;
    - `redirect_url`;
@@ -66,11 +66,7 @@ Example provider config:
   "method": "card",
   "country": "",
   "currency": "USD",
-  "merchant_id": "merchant-id",
-  "public_key": "application-key",
-  "secret_key": "merchant-secret",
-  "webhook_secret": "webhook-secret",
-  "settings_json": "{\"api_base_url\":\"https://api.praxis.example\",\"cashier_base_url\":\"https://cashier.praxis.example\",\"api_version\":\"1.3\",\"locale\":\"en\"}",
+  "config_json": "{\"merchant_id\":\"merchant-id\",\"application_key\":\"application-key\",\"secret_key\":\"merchant-secret\",\"webhook_secret\":\"webhook-secret\",\"api_base_url\":\"https://api.praxis.example\",\"cashier_base_url\":\"https://cashier.praxis.example\",\"api_version\":\"1.3\",\"locale\":\"en\"}",
   "sandbox": 0,
   "enabled": 1
 }
@@ -81,5 +77,5 @@ provider should POST the prepared payload to the provider API, validate the
 provider response, and return the real hosted cashier URL.
 
 Webhook normalization is also shown in the example. A production Praxis module
-must validate the webhook signature with `webhook_secret` before returning
-`PAYMENT_SIGNATURE_VALID`.
+must validate the webhook signature with `webhook_secret` from `config_json`
+before returning `PAYMENT_SIGNATURE_VALID`.
