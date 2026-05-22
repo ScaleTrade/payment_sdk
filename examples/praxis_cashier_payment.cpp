@@ -39,39 +39,18 @@ std::string moneyToString(double amount) {
 
 class PraxisCashierPaymentProvider final : public PaymentInterface {
 public:
-    explicit PraxisCashierPaymentProvider(PaymentServerInterface* server) : server_(server) {}
+    PraxisCashierPaymentProvider(PaymentServerInterface* server, const PaymentProviderConfigRecord& config)
+        : server_(server), config_(config) {}
 
     std::string provider_code() const override { return "praxis"; }
     std::string provider_name() const override { return "Praxis Cashier"; }
     std::string provider_description() const override { return "Praxis-style hosted cashier redirect provider"; }
     std::string provider_payment_mode() const override { return "redirect"; }
 
-    int InitPayment(const PaymentProviderConfigRecord& config) override {
-        const std::string merchant_id = configString(config.config_json, "merchant_id");
-        const std::string application_key = configString(config.config_json, "application_key");
-        const std::string secret_key = configString(config.config_json, "secret_key");
-        if (merchant_id.empty() || application_key.empty() || secret_key.empty()) {
-            return RET_ERR_PARAMS;
-        }
-        config_ = config;
-        initialized_ = true;
-        return RET_OK;
-    }
-
-    int ShutdownPayment() override {
-        initialized_ = false;
-        return RET_OK;
-    }
-
     int CreateDeposit(const PaymentCreateRequestRecord& req, PaymentCreateResponseRecord& res) override {
-        if (!initialized_) {
-            res.status = PAYMENT_STATUS_FAILED;
-            res.failure_reason = "PRAXIS_NOT_INITIALIZED";
-            return RET_ERR_NOSERVICE;
-        }
-        const std::string merchant_id = configString(req.config.config_json, "merchant_id");
-        const std::string application_key = configString(req.config.config_json, "application_key");
-        const std::string secret_key = configString(req.config.config_json, "secret_key");
+        const std::string merchant_id = configString(config_.config_json, "merchant_id");
+        const std::string application_key = configString(config_.config_json, "application_key");
+        const std::string secret_key = configString(config_.config_json, "secret_key");
         if (merchant_id.empty() || application_key.empty() || secret_key.empty()) {
             res.status = PAYMENT_STATUS_FAILED;
             res.failure_reason = "PRAXIS_CONFIG_MISSING";
@@ -83,10 +62,10 @@ public:
             return RET_ERR_PARAMS;
         }
 
-        const std::string api_base = configString(req.config.config_json, "api_base_url", req.config.sandbox ? "https://sandbox.praxis.example" : "https://api.praxis.example");
-        const std::string cashier_base = configString(req.config.config_json, "cashier_base_url", req.config.sandbox ? "https://cashier-sandbox.praxis.example" : "https://cashier.praxis.example");
-        const std::string locale = configString(req.config.config_json, "locale", "en");
-        const std::string version = configString(req.config.config_json, "api_version", "1.3");
+        const std::string api_base = configString(config_.config_json, "api_base_url", config_.sandbox ? "https://sandbox.praxis.example" : "https://api.praxis.example");
+        const std::string cashier_base = configString(config_.config_json, "cashier_base_url", config_.sandbox ? "https://cashier-sandbox.praxis.example" : "https://cashier.praxis.example");
+        const std::string locale = configString(config_.config_json, "locale", "en");
+        const std::string version = configString(config_.config_json, "api_version", "1.3");
 
         res.provider_payment_id = "px-" + std::to_string(req.transaction_id) + "-" + std::to_string(static_cast<long long>(std::time(nullptr)));
 
@@ -140,7 +119,7 @@ public:
 
     int VerifyWebhook(const PaymentWebhookRequestRecord& req, PaymentWebhookResultRecord& res) override {
         rapidjson::Document payload;
-        if (req.payload.empty() || payload.Parse(req.payload.c_str()).HasParseError() || !payload.IsObject()) {
+        if (req.raw_body.empty() || payload.Parse(req.raw_body.c_str()).HasParseError() || !payload.IsObject()) {
             res.signature_status = PAYMENT_SIGNATURE_INVALID;
             res.failure_reason = "INVALID_WEBHOOK_PAYLOAD";
             return RET_INVALID_DATA;
@@ -148,14 +127,14 @@ public:
 
         // Praxis integrations normally validate headers/signature with webhook_secret.
         // This sample marks configured webhooks as valid and focuses on status mapping.
-        const std::string webhook_secret = configString(req.config.config_json, "webhook_secret");
+        const std::string webhook_secret = configString(config_.config_json, "webhook_secret");
         res.signature_status = webhook_secret.empty() ? PAYMENT_SIGNATURE_UNKNOWN : PAYMENT_SIGNATURE_VALID;
         res.event_id = jsonString(payload, "event_id", jsonString(payload, "trace_id"));
         res.provider_payment_id = jsonString(payload, "transaction_id", jsonString(payload, "payment_id"));
         res.raw_status = jsonString(payload, "status");
         if (payload.HasMember("amount") && payload["amount"].IsNumber()) res.amount = payload["amount"].GetDouble();
         res.currency = jsonString(payload, "currency");
-        res.normalized_payload_json = req.payload;
+        res.normalized_payload_json = req.raw_body;
 
         if (res.raw_status == "approved" || res.raw_status == "success") {
             res.status = PAYMENT_STATUS_CONFIRMED;
@@ -176,15 +155,20 @@ public:
 private:
     PaymentServerInterface* server_;
     PaymentProviderConfigRecord config_;
-    bool initialized_ = false;
 };
 
 extern "C" int GetPaymentApiVersion() {
     return PaymentServerInterface::GetApiVersion();
 }
 
-extern "C" PaymentInterface* CreatePaymentProvider(PaymentServerInterface* server) {
-    return new PraxisCashierPaymentProvider(server);
+extern "C" PaymentInterface* CreatePaymentProvider(PaymentServerInterface* server, const PaymentProviderConfigRecord& config) {
+    const std::string merchant_id = configString(config.config_json, "merchant_id");
+    const std::string application_key = configString(config.config_json, "application_key");
+    const std::string secret_key = configString(config.config_json, "secret_key");
+    if (merchant_id.empty() || application_key.empty() || secret_key.empty()) {
+        return nullptr;
+    }
+    return new PraxisCashierPaymentProvider(server, config);
 }
 
 extern "C" void DestroyPaymentProvider(PaymentInterface* provider) {

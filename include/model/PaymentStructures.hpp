@@ -30,10 +30,6 @@ struct PaymentProviderConfigRecord {
     std::string method;
     std::string currency;
     std::string country;
-    std::string merchant_id;
-    std::string public_key;
-    std::string secret_key;
-    std::string webhook_secret;
     std::string settings_json;
     std::string config_json;
     int sandbox = 0;
@@ -54,7 +50,6 @@ struct PaymentCreateRequestRecord {
     std::string success_url;
     std::string failure_url;
     std::string metadata_json;
-    PaymentProviderConfigRecord config;
 };
 
 struct PaymentCreateResponseRecord {
@@ -71,8 +66,9 @@ struct PaymentWebhookRequestRecord {
     std::string path;
     std::string method;
     std::string headers_json;
-    std::string payload;
-    PaymentProviderConfigRecord config;
+    std::string raw_body;
+    std::string raw_query;
+    std::string content_type;
 };
 
 struct PaymentWebhookResultRecord {
@@ -89,7 +85,6 @@ struct PaymentWebhookResultRecord {
 
 struct PaymentStatusRequestRecord {
     std::string provider_payment_id;
-    PaymentProviderConfigRecord config;
 };
 
 struct PaymentStatusResponseRecord {
@@ -104,7 +99,6 @@ struct PaymentStatusResponseRecord {
 struct PaymentCancelRequestRecord {
     std::string provider_payment_id;
     std::string reason;
-    PaymentProviderConfigRecord config;
 };
 
 struct PaymentCancelResponseRecord {
@@ -118,7 +112,6 @@ struct PaymentRefundRequestRecord {
     double amount = 0.0;
     std::string currency;
     std::string reason;
-    PaymentProviderConfigRecord config;
 };
 
 struct PaymentRefundResponseRecord {

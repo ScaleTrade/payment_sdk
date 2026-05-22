@@ -13,7 +13,10 @@ Payment modules should export:
 
 ```cpp
 extern "C" int GetPaymentApiVersion();
-extern "C" PaymentInterface* CreatePaymentProvider(PaymentServerInterface* server);
+extern "C" PaymentInterface* CreatePaymentProvider(
+    PaymentServerInterface* server,
+    const PaymentProviderConfigRecord& config
+);
 extern "C" void DestroyPaymentProvider(PaymentInterface* provider);
 ```
 
@@ -21,13 +24,13 @@ extern "C" void DestroyPaymentProvider(PaymentInterface* provider);
 
 For each enabled Cashier provider config, the server copies the original
 provider `.so` to `var/sttrader/payments` under a unique runtime filename,
-calls `CreatePaymentProvider`, verifies that `provider_code()` matches the
-config `provider`, and then calls `InitPayment(config)`.
+calls `CreatePaymentProvider(server, config)`, and verifies that
+`provider_code()` matches the config `provider`.
 
 One provider module may therefore be initialized more than once with different
 credentials or routing config. Each active provider config has its own module
-copy, handle, and provider instance. Before destroying an instance, the server
-calls `ShutdownPayment()`.
+copy, handle, and provider instance. Provider cleanup is owned by
+`DestroyPaymentProvider`.
 
 ## Core Files
 
@@ -39,8 +42,8 @@ calls `ShutdownPayment()`.
 ## Provider Responsibilities
 
 - create provider-side deposit payment;
-- validate and store config in `InitPayment`;
-- release provider resources in `ShutdownPayment`;
+- validate and store config during `CreatePaymentProvider`;
+- release provider resources in `DestroyPaymentProvider`;
 - verify webhook signatures;
 - normalize provider statuses;
 - return redirect URLs or payment instructions;
@@ -55,8 +58,8 @@ sample. It uses a Praxis-like redirect flow:
 
 1. Cashier resolves the active provider config for `provider`, `brand`,
    `method`, `currency`, and `country`.
-2. Cashier passes routing fields and provider-specific `config_json` to the
-   payment module through `PaymentCreateRequestRecord::config`.
+2. Cashier passes provider-specific `config_json` to the payment module when
+   creating the provider instance.
 3. The provider builds a hosted cashier payload and returns:
    - `provider_payment_id`;
    - `redirect_url`;

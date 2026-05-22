@@ -18,9 +18,6 @@ public:
     virtual std::string provider_description() const { return "Demo payment provider"; }
     virtual std::string provider_payment_mode() const { return "redirect"; }
 
-    virtual int InitPayment(const PaymentProviderConfigRecord& config) { (void)config; return RET_OK; }
-    virtual int ShutdownPayment() { return RET_OK; }
-
     virtual int CreateDeposit(const PaymentCreateRequestRecord& req, PaymentCreateResponseRecord& res) { return RET_OK_NONE; }
     virtual int VerifyWebhook(const PaymentWebhookRequestRecord& req, PaymentWebhookResultRecord& res) { return RET_OK_NONE; }
     virtual int GetPaymentStatus(const PaymentStatusRequestRecord& req, PaymentStatusResponseRecord& res) { return RET_OK_NONE; }
