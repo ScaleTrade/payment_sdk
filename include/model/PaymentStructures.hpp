@@ -35,6 +35,13 @@ struct PaymentProviderConfigRecord {
     int sandbox = 0;
 };
 
+struct PaymentProviderDescriptorRecord {
+    std::string code;
+    std::string name;
+    std::string description;
+    std::string payment_mode;
+};
+
 struct PaymentCreateRequestRecord {
     int transaction_id = 0;
     int customer_id = 0;

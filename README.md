@@ -13,6 +13,7 @@ Payment modules should export:
 
 ```cpp
 extern "C" int GetPaymentApiVersion();
+extern "C" int GetPaymentProviderDescriptor(PaymentProviderDescriptorRecord& out);
 extern "C" PaymentInterface* CreatePaymentProvider(
     PaymentServerInterface* server,
     const PaymentProviderConfigRecord& config
@@ -26,6 +27,12 @@ For each enabled Cashier provider config, the server copies the original
 provider `.so` to `var/sttrader/payments` under a unique runtime filename,
 calls `CreatePaymentProvider(server, config)`, and verifies that
 `provider_code()` matches the config `provider`.
+
+Before provider configs are activated, Cashier scans the `payments` directory,
+preloads each module, validates `GetPaymentApiVersion()`, reads
+`GetPaymentProviderDescriptor(out)`, stores the available provider catalog in
+memory, and unloads the preload handle. Manager UIs should use that catalog
+when offering providers for configuration.
 
 One provider module may therefore be initialized more than once with different
 credentials or routing config. Each active provider config has its own module

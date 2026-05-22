@@ -161,6 +161,14 @@ extern "C" int GetPaymentApiVersion() {
     return PaymentServerInterface::GetApiVersion();
 }
 
+extern "C" int GetPaymentProviderDescriptor(PaymentProviderDescriptorRecord& out) {
+    out.code = "praxis";
+    out.name = "Praxis Cashier";
+    out.description = "Praxis-style hosted cashier redirect provider";
+    out.payment_mode = "redirect";
+    return RET_OK;
+}
+
 extern "C" PaymentInterface* CreatePaymentProvider(PaymentServerInterface* server, const PaymentProviderConfigRecord& config) {
     const std::string merchant_id = configString(config.config_json, "merchant_id");
     const std::string application_key = configString(config.config_json, "application_key");
