@@ -182,7 +182,8 @@ enum EventRecordType {
     EV_RECORD_RESTORE,         // Востановлена запись
     EV_RECORD_ARCHIVE,         // Удалена запись
     EV_RECORD_ACTIVATE_TRADE,  // Трейд активировался запись
-    EV_RECORD_CLOSE_TRADE      // Трейд закрылся запись
+    EV_RECORD_CLOSE_TRADE,     // Трейд закрылся запись
+    EV_RECORD_REJECT_TRADE     // Заявка на открытие отклонена до создания трейда
 };
 
 //--- Session type
