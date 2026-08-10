@@ -642,6 +642,7 @@ inline int FormatWebStatus(const int retcode) {
         case RET_TRADE_HAS_OPEN:
         case RET_DUPLICATE_RECORD:
         case RET_CFG_DUPLICATE:
+        case RET_CFG_NOT_EMPTY:
             return 409;
         case RET_TRADE_MARKET_CLOSED:
             return 423;
