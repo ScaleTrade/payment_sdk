@@ -43,6 +43,7 @@ enum ReturnCodes {
     //--- Groups errors
     RET_GROUP_NOT_FOUND = 28,        //  Пользователь не найден
     RET_GROUP_USE_BY_USER,           //  Group use by accounts
+    RET_GROUP_CURRENCY_CHANGE_FORBIDDEN = 30, // Group currency cannot change while accounts are assigned
 
     //--- Symobls errors
     RET_SEC_USE_BY_SYMBOL = 32,     // Группа смиволов используется символом
@@ -343,6 +344,7 @@ inline std::string FormatError(const int retcode) {
 
       // //--- Group errors
        {RET_GROUP_USE_BY_USER,           "Group use by active accounts"      },
+       {RET_GROUP_CURRENCY_CHANGE_FORBIDDEN, "Group currency cannot be changed while accounts are assigned" },
        // {RET_GROUP_BAD_STOPS,             "wrong stops level"},
 
       // //--- trade errors
@@ -484,6 +486,7 @@ inline std::string FormatErrorCode(const int retcode) {
 
         { RET_GROUP_NOT_FOUND, "RET_GROUP_NOT_FOUND" },
         { RET_GROUP_USE_BY_USER, "RET_GROUP_USE_BY_USER" },
+        { RET_GROUP_CURRENCY_CHANGE_FORBIDDEN, "RET_GROUP_CURRENCY_CHANGE_FORBIDDEN" },
 
         { RET_SEC_USE_BY_SYMBOL, "RET_SEC_USE_BY_SYMBOL" },
         { RET_SYMBOL_USE_BY_TRADE, "RET_SYMBOL_USE_BY_TRADE" },
@@ -643,6 +646,7 @@ inline int FormatWebStatus(const int retcode) {
         case RET_DUPLICATE_RECORD:
         case RET_CFG_DUPLICATE:
         case RET_CFG_NOT_EMPTY:
+        case RET_GROUP_CURRENCY_CHANGE_FORBIDDEN:
             return 409;
         case RET_TRADE_MARKET_CLOSED:
             return 423;
