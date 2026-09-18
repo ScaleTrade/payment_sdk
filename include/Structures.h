@@ -197,7 +197,8 @@ enum {
     SESSION_FIX,                            // Добавлена новая запись
     SESSION_CUSTOMER = 9,                   // Customer session
     SESSION_CRM_MANAGER = 10,               // Добавлена новая запись
-    SESSION_CRM_ADMIN                       // Добавлена новая запись
+    SESSION_CRM_ADMIN,                      // Добавлена новая запись
+    SESSION_AFFILIATE = 12                  // Affiliate cabinet session
 };
 
 //+------------------------------------------------------------------+

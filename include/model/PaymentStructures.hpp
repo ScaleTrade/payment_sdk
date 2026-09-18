@@ -2,6 +2,7 @@
 
 #include <ctime>
 #include <string>
+#include <vector>
 
 enum PaymentTransactionType {
     PAYMENT_TRANSACTION_DEPOSIT = 0,
@@ -33,6 +34,14 @@ struct PaymentProviderConfigRecord {
     std::string settings_json;
     std::string config_json;
     int sandbox = 0;
+};
+
+// Safe validation details returned by a payment module. Values of secret
+// configuration fields must never be included in this record.
+struct PaymentProviderConfigValidationRecord {
+    std::string error;
+    std::string message;
+    std::vector<std::string> fields;
 };
 
 struct PaymentProviderDescriptorRecord {

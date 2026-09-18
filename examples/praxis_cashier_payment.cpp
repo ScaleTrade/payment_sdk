@@ -7,6 +7,12 @@
 #include <rapidjson/writer.h>
 #include <sstream>
 
+#if defined(__GNUC__) || defined(__clang__)
+#define PAYMENT_MODULE_EXPORT extern "C" __attribute__((visibility("default")))
+#else
+#define PAYMENT_MODULE_EXPORT extern "C"
+#endif
+
 namespace {
 std::string jsonString(const rapidjson::Value& obj, const char* key, const std::string& fallback = "") {
     if (!obj.IsObject() || !obj.HasMember(key) || !obj[key].IsString()) return fallback;
@@ -157,11 +163,11 @@ private:
     PaymentProviderConfigRecord config_;
 };
 
-extern "C" int GetPaymentApiVersion() {
+PAYMENT_MODULE_EXPORT int GetPaymentApiVersion() {
     return PaymentServerInterface::GetApiVersion();
 }
 
-extern "C" int GetPaymentProviderDescriptor(PaymentProviderDescriptorRecord& out) {
+PAYMENT_MODULE_EXPORT int GetPaymentProviderDescriptor(PaymentProviderDescriptorRecord& out) {
     out.code = "praxis";
     out.name = "Praxis Cashier";
     out.description = "Praxis-style hosted cashier redirect provider";
@@ -169,7 +175,21 @@ extern "C" int GetPaymentProviderDescriptor(PaymentProviderDescriptorRecord& out
     return RET_OK;
 }
 
-extern "C" PaymentInterface* CreatePaymentProvider(PaymentServerInterface* server, const PaymentProviderConfigRecord& config) {
+PAYMENT_MODULE_EXPORT int ValidatePaymentProviderConfig(
+    const PaymentProviderConfigRecord& config,
+    PaymentProviderConfigValidationRecord& out
+) {
+    out = {};
+    if (configString(config.config_json, "merchant_id").empty()) out.fields.push_back("merchant_id");
+    if (configString(config.config_json, "application_key").empty()) out.fields.push_back("application_key");
+    if (configString(config.config_json, "secret_key").empty()) out.fields.push_back("secret_key");
+    if (out.fields.empty()) return RET_OK;
+    out.error = "PAYMENT_PROVIDER_CONFIG_INVALID";
+    out.message = "Missing required provider configuration fields";
+    return RET_ERR_PARAMS;
+}
+
+PAYMENT_MODULE_EXPORT PaymentInterface* CreatePaymentProvider(PaymentServerInterface* server, const PaymentProviderConfigRecord& config) {
     const std::string merchant_id = configString(config.config_json, "merchant_id");
     const std::string application_key = configString(config.config_json, "application_key");
     const std::string secret_key = configString(config.config_json, "secret_key");
@@ -179,6 +199,6 @@ extern "C" PaymentInterface* CreatePaymentProvider(PaymentServerInterface* serve
     return new PraxisCashierPaymentProvider(server, config);
 }
 
-extern "C" void DestroyPaymentProvider(PaymentInterface* provider) {
+PAYMENT_MODULE_EXPORT void DestroyPaymentProvider(PaymentInterface* provider) {
     delete provider;
 }

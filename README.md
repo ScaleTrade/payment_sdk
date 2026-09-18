@@ -21,6 +21,21 @@ extern "C" PaymentInterface* CreatePaymentProvider(
 extern "C" void DestroyPaymentProvider(PaymentInterface* provider);
 ```
 
+Modules may additionally export configuration validation:
+
+```cpp
+extern "C" int ValidatePaymentProviderConfig(
+    const PaymentProviderConfigRecord& config,
+    PaymentProviderConfigValidationRecord& out
+);
+```
+
+The server calls this hook before `CreatePaymentProvider`. On validation
+failure, the module should return `RET_ERR_PARAMS`, set a stable `out.error`,
+a safe human-readable `out.message`, and list invalid or missing field names in
+`out.fields`. Secret values must never be returned. Modules without this
+optional export retain the previous initialization behavior.
+
 `GetPaymentApiVersion()` must return `PaymentServerInterface::GetApiVersion()`.
 
 For each enabled Cashier provider config, the server copies the original
